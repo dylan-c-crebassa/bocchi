@@ -1,12 +1,11 @@
 import os
 import yt_dlp
-from collections import deque
 
-from helper import ensure_https, format_query
+from helpers.utils import ensure_https, format_query
+from functions.QueueManager import song_queue
 
 cur_dir= os.path.dirname(os.path.abspath(__file__))
 
-song_queue = deque()
 
 def main(url_or_query):
     allocate_queue(format_query(url_or_query))
@@ -31,7 +30,7 @@ def download_audio(url_or_query):
 
 def allocate_queue(url_array):
     for entry in extract_entries(url_array):
-        song_queue.append({
+        song_queue.add({
             'title': entry['title'],
             'url': f"https://www.youtube.com/watch?v={entry['id']}"
     })

@@ -1,21 +1,28 @@
-async def play(ctx, query):
-    if not query:
+
+import discord
+
+from functions.downloadAudio import format_query, allocate_queue
+from helpers.play_utils import user_in_channel, clear_last_inactivity_check, check_inactivity
+from functions.QueueManager import get_inactivity_queue, song_queue
+
+inactivity_tasks = get_inactivity_queue()
+
+async def PlayController(bot, ctx, url_or_query):
+    if not url_or_query and song_queue.is_empty():
         return await ctx.send("You need to send me a request or youtube URL!")
 
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        if ctx.voice_client is None:
-            await ctx.send("Entered channel")
-            await channel.connect()
-    else:
-        return await ctx.send("You need to be in a voice channel first!")
+    # Validate if user is in channel
+    if not await user_in_channel(ctx):
+        return
+
+    allocate_queue(format_query(url_or_query))
+
 
     if ctx.voice_client:
-        source = discord.FFmpegPCMAudio(f"{cur_dir}/output/audio.m4a", executable="ffmpeg")
 
-        # Cancel any previous inactivity check for this guild
-        if ctx.guild.id in inactivity_tasks:
-            inactivity_tasks[ctx.guild.id].cancel()
+        source = discord.FFmpegPCMAudio(f"../output/audio.m4a", executable="ffmpeg")
+
+        clear_last_inactivity_check(bot, ctx)
 
         def after_playing(error):
             #Runs after the audio stops playing (executed in a separate thread).
@@ -25,5 +32,8 @@ async def play(ctx, query):
             # Schedule the latest inactivity check
             task = bot.loop.create_task(check_inactivity(ctx.voice_client, ctx.guild.id))
             inactivity_tasks[ctx.guild.id] = task
+            next_task = bot.loop.create_task(PlayController(bot, ctx))
+
 
         ctx.voice_client.play(source, after=after_playing)
+
