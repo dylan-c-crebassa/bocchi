@@ -1,0 +1,6 @@
+discord
+python-dotenv
+yt_dlp
+asyncio
+pynacl
+youtube-search-python
